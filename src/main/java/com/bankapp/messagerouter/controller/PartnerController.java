@@ -39,7 +39,7 @@ public class PartnerController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePartner(@PathVariable Long id) {
         Optional<Partner> partner = partnerService.findPartnerById(id);
-        if (!partner.isPresent()) {
+        if (partner.isEmpty()) {
             return ResponseEntity.notFound().build();  // Return 404 if partner is not found
         }
         partnerService.deletePartner(id);
