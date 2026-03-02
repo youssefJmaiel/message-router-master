@@ -1,6 +1,7 @@
 package com.bankapp.messagerouter.service;
 
 import com.bankapp.messagerouter.entity.Partner;
+import com.bankapp.messagerouter.error.PartnerNotFoundException;
 import com.bankapp.messagerouter.repository.PartnerRepository;
 import org.springframework.stereotype.Service;
 
@@ -24,17 +25,18 @@ public class PartnerService {
         return partnerRepository.save(partner);
     }
 
-//    public void deletePartner(Long id) {
-//        partnerRepository.deleteById(id);
-//    }
     public void deletePartner(Long id) {
-        if (partnerRepository.existsById(id)) {
-            partnerRepository.deleteById(id);
-        } else {
-            throw new RuntimeException("Partner not found");
+        if (!partnerRepository.existsById(id)) {
+            throw new PartnerNotFoundException("Partner not found with id: " + id);
         }
+        partnerRepository.deleteById(id);
+    }
+
+    public Partner getPartnerById(Long id) {
+        return partnerRepository.findById(id)
+                .orElseThrow(() -> new PartnerNotFoundException("Partner not found with id: " + id));
     }
     public Optional<Partner> findPartnerById(Long id) {
-        return partnerRepository.findById(id);  // Ensure this returns an Optional
+        return partnerRepository.findById(id);
     }
 }
