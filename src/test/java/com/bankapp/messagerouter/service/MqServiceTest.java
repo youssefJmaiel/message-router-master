@@ -7,11 +7,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jms.core.JmsTemplate;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-
 import javax.jms.Queue;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,31 +26,53 @@ class MqServiceTest {
 
     @Test
     void testConnect() {
-        // Call the method under test
         mqService.connect();
-
-        // Verify that certain methods were called on jmsTemplate (example: setReceiveTimeout)
-        verify(jmsTemplate).setReceiveTimeout(anyLong()); // Check if this method is called
+        verify(jmsTemplate).setReceiveTimeout(anyLong());
     }
 
+    @Test
+    void testConnectWithException() {
+        doThrow(new RuntimeException("Timeout error")).when(jmsTemplate).setReceiveTimeout(anyLong());
 
+        RuntimeException exception = assertThrows(RuntimeException.class, mqService::connect);
+        assertEquals("Timeout error", exception.getMessage());
+    }
 
     @Test
     void testSendMessage() {
-        // Ensure that the mock is properly injected
-        assertNotNull(mqService, "MqService should not be null");
-        assertNotNull(jmsTemplate, "jmsTemplate should not be null");
-        assertNotNull(queue, "queue should not be null");
-
-        // Call the method under test
         mqService.sendMessage("Test message");
-
-        // Verify that convertAndSend was called on jmsTemplate with the correct parameters
-        verify(jmsTemplate).convertAndSend(eq(queue), eq("Test message"));
+        verify(jmsTemplate).convertAndSend(queue, "Test message");
     }
 
+    @Test
+    void testSendMessageThrowsException() {
+        doThrow(new RuntimeException("MQ down")).when(jmsTemplate).convertAndSend(queue, "Fail message");
 
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> mqService.sendMessage("Fail message"));
+        assertEquals("MQ send failed", exception.getMessage());
+    }
 
+    @Test
+    void testReceiveMessage() {
+        when(jmsTemplate.receiveAndConvert(queue)).thenReturn("Hello MQ");
 
+        String msg = mqService.receiveMessage();
+        assertEquals("Hello MQ", msg);
+    }
 
+    @Test
+    void testReceiveMessageNull() {
+        when(jmsTemplate.receiveAndConvert(queue)).thenReturn(null);
+
+        String msg = mqService.receiveMessage();
+        assertNull(msg);
+    }
+
+    @Test
+    void testReceiveMessageThrowsException() {
+        when(jmsTemplate.receiveAndConvert(queue)).thenThrow(new RuntimeException("MQ error"));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, mqService::receiveMessage);
+        assertEquals("MQ receive failed", exception.getMessage());
+    }
 }

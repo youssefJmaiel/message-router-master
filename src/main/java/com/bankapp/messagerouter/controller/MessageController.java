@@ -4,9 +4,8 @@ import com.bankapp.messagerouter.dto.MessageRequest;
 import com.bankapp.messagerouter.entity.Message;
 import com.bankapp.messagerouter.service.MessageService;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,6 +32,19 @@ public class MessageController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<Message> getAllMessages() {
         return messageService.getAllMessages();
+    }
+
+
+    @GetMapping("/messages/paged")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<Message>> getMessagesPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "timestamp") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction
+    ) {
+        Page<Message> messages = messageService.getMessagesPaginated(page, size, sortBy, direction);
+        return ResponseEntity.ok(messages);
     }
 
 

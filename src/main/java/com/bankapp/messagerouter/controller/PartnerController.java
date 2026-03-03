@@ -3,6 +3,7 @@ package com.bankapp.messagerouter.controller;
 import com.bankapp.messagerouter.entity.Partner;
 import com.bankapp.messagerouter.service.PartnerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +30,18 @@ public class PartnerController {
     public ResponseEntity<List<Partner>> getAllPartners() {
         log.info("Fetching all partners");
         List<Partner> partners = partnerService.getAllPartners();
+        return ResponseEntity.ok(partners);
+    }
+
+    @GetMapping("/paged")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Page<Partner>> getPartnersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "alias") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        Page<Partner> partners = partnerService.getPartnersPaginated(page, size, sortBy, direction);
         return ResponseEntity.ok(partners);
     }
 
