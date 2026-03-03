@@ -46,10 +46,11 @@ public class PartnerController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<Partner> getPartnerById(@PathVariable Long id) {
-        log.info("Fetching partner with id: {}", id);
-        Partner partner = partnerService.getPartnerById(id);
-        return ResponseEntity.ok(partner);
+        return partnerService.findPartnerById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
@@ -59,12 +60,7 @@ public class PartnerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPartner);
     }
 
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<Void> deletePartner(@PathVariable Long id) {
-//        log.info("Deleting partner with id: {}", id);
-//        partnerService.deletePartner(id);
-//        return ResponseEntity.noContent().build();
-//    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePartner(@PathVariable Long id) {
         Optional<Partner> partner = partnerService.findPartnerById(id);
