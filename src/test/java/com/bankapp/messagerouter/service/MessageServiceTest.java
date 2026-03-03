@@ -2,7 +2,6 @@ package com.bankapp.messagerouter.service;
 
 import com.bankapp.messagerouter.entity.Message;
 import com.bankapp.messagerouter.repository.MessageRepository;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,17 +10,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
-import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.any;  // Utilise any() de Mockito
 
+import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -33,129 +34,142 @@ class MessageServiceTest {
     @InjectMocks
     private MessageService messageService;
 
+    private Message sampleMessage;
+
     @BeforeEach
     void setUp() {
-        // Simule un message retourné par le repository
-        Message message = new Message();
-        message.setContent("Hello, World!");
-        message.setSender("Alice");
-        message.setReceiver("Bob");
-        message.setTimestamp(LocalDateTime.now());
-        message.setProcessed(false);
+        // Message d'exemple
+        sampleMessage = new Message();
+        sampleMessage.setId(1L);
+        sampleMessage.setContent("Hello, World!");
+        sampleMessage.setSender("Alice");
+        sampleMessage.setReceiver("Bob");
+        sampleMessage.setTimestamp(LocalDateTime.now());
+        sampleMessage.setProcessed(false);
 
+        // Mock findAll
+        when(messageRepository.findAll()).thenReturn(List.of(sampleMessage));
 
-        // Configure le comportement du mock
-        when(messageRepository.findAll()).thenReturn(List.of(message));
-
-//        lenient().when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
-//            Message savedMessage = invocation.getArgument(0);
-//            savedMessage.setId(1L); // Simule l'assignation de l'ID après la sauvegarde
-//            return savedMessage;
-//        });
-
+        // Mock save
+        when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
+            Message saved = invocation.getArgument(0);
+            saved.setId(1L); // simule l'assignation de l'ID
+            return saved;
+        });
     }
 
-@Test
-void testSaveMessage() {
-    Message message = new Message();
-    message.setContent("Test Content");
-    message.setSender("Alice");
-    message.setReceiver("Bob");
+    @Test
+    void testSaveMessage() {
+        Message message = new Message();
+        message.setContent("Test Content");
+        message.setSender("Alice");
+        message.setReceiver("Bob");
 
-    // Mock le comportement du repository
-    when(messageRepository.save(any(Message.class))).thenReturn(message);
+        Message savedMessage = messageService.saveMessage(message);
 
-    // Appel de la méthode à tester
-    Message savedMessage = messageService.saveMessage(message);
+        assertNotNull(savedMessage);
+        assertEquals("Test Content", savedMessage.getContent());
+        assertEquals("Alice", savedMessage.getSender());
+        assertEquals("Bob", savedMessage.getReceiver());
 
-    // Vérifications
-    assertNotNull(savedMessage);
-    assertEquals("Test Content", savedMessage.getContent());
-    assertEquals("Alice", savedMessage.getSender());
-    assertEquals("Bob", savedMessage.getReceiver());
+        verify(messageRepository, times(1)).save(message);
+    }
 
-    // Vérifie que save a bien été appelé
-    verify(messageRepository, times(1)).save(message);
-}
+    @Test
+    void testSaveMessageThrowsException() {
+        Message message = new Message();
+        when(messageRepository.save(any(Message.class))).thenThrow(new RuntimeException("Error saving message"));
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> messageService.saveMessage(message));
+        assertEquals("Error saving message", ex.getMessage());
+    }
 
     @Test
     void testGetAllMessages() {
         List<Message> messages = messageService.getAllMessages();
 
         assertNotNull(messages);
-        System.out.println(messages);// Vérifie que la liste n'est pas null
-        Assert.assertFalse(messages.isEmpty()); // Vérifie que la liste n'est pas vide
-        assertEquals(1, messages.size()); // Vérifie que la liste contient un message
-        assertEquals("Hello, World!", messages.get(0).getContent()); // Vérifie le contenu
+        assertFalse(messages.isEmpty());
+        assertEquals(1, messages.size());
+        assertEquals("Hello, World!", messages.get(0).getContent());
     }
+
     @Test
     void testGetAllMessagesEmpty() {
         when(messageRepository.findAll()).thenReturn(Collections.emptyList());
+
         List<Message> messages = messageService.getAllMessages();
 
         assertNotNull(messages);
-        assertTrue(messages.isEmpty()); // Vérifie que la liste est vide
+        assertTrue(messages.isEmpty());
     }
+
     @Test
     void testGetAllMessagesWithException() {
         when(messageRepository.findAll()).thenThrow(new RuntimeException("Database error"));
-        assertThrows(RuntimeException.class, () -> messageService.getAllMessages());
-    }
-    @Test
-    void testSaveMessageThrowsException() {
-        Message message = new Message();
-        when(messageRepository.save(any(Message.class))).thenThrow(new RuntimeException("Error saving message"));
 
-        assertThrows(RuntimeException.class, () -> messageService.saveMessage(message));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> messageService.getAllMessages());
+        assertEquals("Database error", ex.getMessage());
     }
 
     @Test
     void deleteMessage_shouldCallRepository() {
-        // Arrange
         Long messageId = 1L;
 
-        // Act
+        // Simule que le message existe
+        when(messageRepository.existsById(messageId)).thenReturn(true);
+
+        // Appel de la méthode
         messageService.deleteMessage(messageId);
 
-        // Assert
+        // Vérifie que existsById et deleteById ont été appelés
+        verify(messageRepository, times(1)).existsById(messageId);
         verify(messageRepository, times(1)).deleteById(messageId);
     }
+    @Test
+    void deleteMessage_shouldThrowException_whenNotFound() {
+        Long messageId = 2L;
+        when(messageRepository.findById(messageId)).thenReturn(Optional.empty());
 
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> messageService.deleteMessage(messageId));
+        assertEquals("Message not found", ex.getMessage());
+    }
 
     @Test
     void getMessageById_shouldReturnMessage_whenFound() {
-        // Arrange
         Long messageId = 1L;
-        Message message = new Message();
-        message.setId(messageId);
-        message.setContent("Test Message");
-        when(messageRepository.findById(messageId)).thenReturn(Optional.of(message));
+        when(messageRepository.findById(messageId)).thenReturn(Optional.of(sampleMessage));
 
-        // Act
         Message foundMessage = messageService.getMessageById(messageId);
 
-        // Assert
         assertNotNull(foundMessage);
-        assertEquals("Test Message", foundMessage.getContent());
+        assertEquals("Hello, World!", foundMessage.getContent());
         verify(messageRepository, times(1)).findById(messageId);
     }
 
     @Test
     void getMessageById_shouldThrowException_whenNotFound() {
-        // Arrange
-        Long messageId = 1L;
+        Long messageId = 2L;
         when(messageRepository.findById(messageId)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> messageService.getMessageById(messageId));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> messageService.getMessageById(messageId));
+        assertEquals("Message not found", ex.getMessage());
         verify(messageRepository, times(1)).findById(messageId);
     }
 
+    @Test
+    void testGetMessagesPaginated() {
+        Message message = new Message();
+        message.setId(1L);
+        message.setContent("Hello Paginated");
+        Page<Message> page = new PageImpl<>(List.of(message));
 
+        when(messageRepository.findAll(any(Pageable.class))).thenReturn(page);
 
+        Page<Message> result = messageService.getMessagesPaginated(0, 10, "timestamp", "asc");
 
-
-
-
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        assertEquals("Hello Paginated", result.getContent().get(0).getContent());
+    }
 }
-
