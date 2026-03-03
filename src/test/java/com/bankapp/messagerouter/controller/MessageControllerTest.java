@@ -1,5 +1,6 @@
 package com.bankapp.messagerouter.controller;
 
+import com.bankapp.messagerouter.dto.MessageRequest;
 import com.bankapp.messagerouter.entity.Message;
 import com.bankapp.messagerouter.service.MessageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class MessageControllerTest {
+public class MessageControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -33,12 +34,13 @@ class MessageControllerTest {
     @MockBean
     private MessageService messageService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private ObjectMapper objectMapper;
 
-    // ---------------------- GET ALL ----------------------
+    // ---------------------- GET ALL MESSAGES ----------------------
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void testGetAllMessages() throws Exception {
+    public void testGetAllMessages() throws Exception {
         Message message = new Message();
         message.setContent("Hello, World!");
         message.setSender("Alice");
@@ -53,53 +55,29 @@ class MessageControllerTest {
                 .andExpect(jsonPath("$[0].receiver").value("Bob"));
     }
 
-    // ---------------------- POST ----------------------
+    // ---------------------- GET MESSAGE BY ID ----------------------
     @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    void testSaveMessage() throws Exception {
+    @WithMockUser
+    public void testGetMessageById_found() throws Exception {
         Message message = new Message();
-        message.setContent("New Message");
+        message.setId(1L);
+        message.setContent("Message 1");
         message.setSender("Alice");
         message.setReceiver("Bob");
 
-        String messageJson = objectMapper.writeValueAsString(message);
-        when(messageService.saveMessage(any(Message.class))).thenReturn(message);
+        when(messageService.getMessageById(1L)).thenReturn(message);
 
-        mockMvc.perform(post("/api/message")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(messageJson))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.content").value("New Message"))
+        mockMvc.perform(get("/api/message/{id}", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("Message 1"))
                 .andExpect(jsonPath("$.sender").value("Alice"))
                 .andExpect(jsonPath("$.receiver").value("Bob"));
     }
 
-    // ---------------------- DELETE ----------------------
+    // ---------------------- GET MESSAGES PAGINATED ----------------------
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void testDeleteMessage_Success() throws Exception {
-        Long messageId = 1L;
-        when(messageService.findById(messageId)).thenReturn(Optional.of(new Message()));
-        doNothing().when(messageService).deleteMessage(messageId);
-
-        mockMvc.perform(delete("/api/message/{id}", messageId))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    void testDeleteMessage_NotFound() throws Exception {
-        Long messageId = 1L;
-        when(messageService.findById(messageId)).thenReturn(Optional.empty());
-
-        mockMvc.perform(delete("/api/message/{id}", messageId))
-                .andExpect(status().isNotFound());
-    }
-
-    // ---------------------- PAGINATION ----------------------
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void testGetMessagesPaginated() throws Exception {
+    public void testGetMessagesPaginated() throws Exception {
         Message message = new Message();
         message.setId(1L);
         message.setContent("Paged Message");
@@ -120,5 +98,73 @@ class MessageControllerTest {
                 .andExpect(jsonPath("$.content[0].receiver").value("Bob"))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    // ---------------------- SAVE MESSAGE ----------------------
+    @Test
+    @WithMockUser
+    public void testSaveMessage() throws Exception {
+        Message message = new Message();
+        message.setContent("New Message");
+        message.setSender("Alice");
+        message.setReceiver("Bob");
+
+        when(messageService.saveMessage(any(Message.class))).thenReturn(message);
+
+        mockMvc.perform(post("/api/message")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(message)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.content").value("New Message"))
+                .andExpect(jsonPath("$.sender").value("Alice"))
+                .andExpect(jsonPath("$.receiver").value("Bob"));
+    }
+
+    // ---------------------- DELETE MESSAGE ----------------------
+    @Test
+    @WithMockUser
+    public void testDeleteMessage_found() throws Exception {
+        Message message = new Message();
+        message.setId(1L);
+
+        when(messageService.findById(1L)).thenReturn(Optional.of(message));
+        doNothing().when(messageService).deleteMessage(1L);
+
+        mockMvc.perform(delete("/api/message/{id}", 1L))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser
+    public void testDeleteMessage_notFound() throws Exception {
+        when(messageService.findById(1L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(delete("/api/message/{id}", 1L))
+                .andExpect(status().isNotFound());
+    }
+
+    // ---------------------- SEND MESSAGE ----------------------
+    @Test
+    @WithMockUser
+    public void testSendMessage() throws Exception {
+        MessageRequest request = new MessageRequest();
+        request.setContent("Sent message");
+        request.setSender("Alice");
+        request.setReceiver("Bob");
+
+        Message message = new Message();
+        message.setContent("Sent message");
+        message.setSender("Alice");
+        message.setReceiver("Bob");
+
+        when(messageService.sendMessage(any(), any(), any())).thenReturn(message);
+
+        mockMvc.perform(post("/api/message/send")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.content").value("Sent message"))
+                .andExpect(jsonPath("$.sender").value("Alice"))
+                .andExpect(jsonPath("$.receiver").value("Bob"));
     }
 }

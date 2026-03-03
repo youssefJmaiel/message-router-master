@@ -21,12 +21,14 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = "spring.security.enabled=false")
+@SpringBootTest
 @AutoConfigureMockMvc
-public class PartnerControllerTest {
+class PartnerControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,10 +39,11 @@ public class PartnerControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // ---------------------- GET ALL PARTNERS ----------------------
+    // ---------------------- GET ALL ----------------------
     @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    public void testGetAllPartners() throws Exception {
+    @WithMockUser(roles = "USER")
+    void getAllPartners_shouldReturnList() throws Exception {
+
         Partner partner = new Partner();
         partner.setAlias("Test Partner");
 
@@ -52,10 +55,39 @@ public class PartnerControllerTest {
                 .andExpect(jsonPath("$[0].alias").value("Test Partner"));
     }
 
-    // ---------------------- ADD PARTNER ----------------------
+    // ---------------------- GET BY ID ----------------------
     @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    public void testAddPartner() throws Exception {
+    @WithMockUser(roles = "USER")
+    void getPartnerById_shouldReturnPartner_whenFound() throws Exception {
+
+        Partner partner = new Partner();
+        partner.setId(1L);
+        partner.setAlias("Partner 1");
+
+        when(partnerService.findPartnerById(1L))
+                .thenReturn(Optional.of(partner));
+
+        mockMvc.perform(get("/api/partners/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alias").value("Partner 1"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void getPartnerById_shouldReturnNotFound_whenMissing() throws Exception {
+
+        when(partnerService.findPartnerById(1L))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/partners/1"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ---------------------- CREATE ----------------------
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createPartner_shouldReturnCreated() throws Exception {
+
         Partner partner = new Partner();
         partner.setAlias("New Partner");
         partner.setType(PartnerType.MESSAGE);
@@ -63,7 +95,8 @@ public class PartnerControllerTest {
         partner.setProcessedFlowType(ProcessedFlowType.MESSAGE);
         partner.setDescription("Valid Description");
 
-        when(partnerService.savePartner(any(Partner.class))).thenReturn(partner);
+        when(partnerService.savePartner(any(Partner.class)))
+                .thenReturn(partner);
 
         mockMvc.perform(post("/api/partners")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -76,56 +109,31 @@ public class PartnerControllerTest {
                 .andExpect(jsonPath("$.description").value("Valid Description"));
     }
 
-    // ---------------------- DELETE PARTNER ----------------------
+    // ---------------------- DELETE ----------------------
     @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    public void deletePartner_shouldReturnNoContent_whenSuccessful() throws Exception {
-        Long partnerId = 1L;
+    @WithMockUser(roles = "ADMIN")
+    void deletePartner_shouldReturnNoContent_whenExists() throws Exception {
+
         Partner partner = new Partner();
-        partner.setId(partnerId);
+        partner.setId(1L);
 
-        when(partnerService.findPartnerById(partnerId)).thenReturn(Optional.of(partner));
-        doNothing().when(partnerService).deletePartner(partnerId);
+        when(partnerService.findPartnerById(1L))
+                .thenReturn(Optional.of(partner));
 
-        mockMvc.perform(delete("/api/partners/{id}", partnerId))
+        doNothing().when(partnerService).deletePartner(1L);
+
+        mockMvc.perform(delete("/api/partners/1"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    public void deletePartner_shouldReturnNotFound_whenPartnerNotFound() throws Exception {
-        Long partnerId = 1L;
+    @WithMockUser(roles = "ADMIN")
+    void deletePartner_shouldReturnNotFound_whenMissing() throws Exception {
 
-        when(partnerService.findPartnerById(partnerId)).thenReturn(Optional.empty());
+        when(partnerService.findPartnerById(1L))
+                .thenReturn(Optional.empty());
 
-        mockMvc.perform(delete("/api/partners/{id}", partnerId))
-                .andExpect(status().isNotFound());
-    }
-
-    // ---------------------- GET PARTNER BY ID ----------------------
-    @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    public void getPartnerById_shouldReturnPartner_whenFound() throws Exception {
-        Long partnerId = 1L;
-        Partner partner = new Partner();
-        partner.setId(partnerId);
-        partner.setAlias("Partner 1");
-
-        when(partnerService.findPartnerById(partnerId)).thenReturn(Optional.of(partner));
-
-        mockMvc.perform(get("/api/partners/{id}", partnerId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.alias").value("Partner 1"));
-    }
-
-    @Test
-    @WithMockUser(username = "user", roles = {"USER"})
-    public void getPartnerById_shouldReturnNotFound_whenPartnerNotFound() throws Exception {
-        Long partnerId = 1L;
-
-        when(partnerService.findPartnerById(partnerId)).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/api/partners/{id}", partnerId))
+        mockMvc.perform(delete("/api/partners/1"))
                 .andExpect(status().isNotFound());
     }
 }
