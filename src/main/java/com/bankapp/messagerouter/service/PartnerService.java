@@ -1,12 +1,12 @@
 package com.bankapp.messagerouter.service;
 
 import com.bankapp.messagerouter.entity.Partner;
+import com.bankapp.messagerouter.error.PartnerNotFoundException;
 import com.bankapp.messagerouter.repository.PartnerRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PartnerService {
@@ -31,7 +31,7 @@ public class PartnerService {
 
     public Partner getPartnerById(Long id) {
         return partnerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Partner not found"));
+                .orElseThrow(() -> new PartnerNotFoundException("Partner with ID " + id + " not found"));
     }
 
     public Partner savePartner(Partner partner) {
@@ -42,11 +42,7 @@ public class PartnerService {
         if (partnerRepository.existsById(id)) {
             partnerRepository.deleteById(id);
         } else {
-            throw new RuntimeException("Partner not found");
+            throw new PartnerNotFoundException("Partner with ID " + id + " not found");
         }
-    }
-
-    public Optional<Partner> findPartnerById(Long id) {
-        return partnerRepository.findById(id);
     }
 }

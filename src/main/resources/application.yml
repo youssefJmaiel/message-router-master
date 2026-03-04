@@ -1,4 +1,27 @@
 spring:
+  application:
+    name: Message Router
+  h2:
+    console:
+      enabled: true
+  datasource:
+    url: jdbc:h2:file:/home/youssef/mydb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS
+    serialization:
+      write-dates-as-timestamps: false
   security:
     oauth2:
       resourceserver:
@@ -10,12 +33,35 @@ spring:
       destination-name: DEV.QUEUE.1
       concurrency: 1
       max-concurrency: 5
-ibm.mq:
-  host: 127.0.0.1
-  port: 1414
-  queueManager: QM1
-  channel: DEV.APP.SVRCONN
-  queue: MY_QUEUE
-  connName: localhost(1414)
-  user: admin
-  password: passw0rd
+
+server:
+  connection-timeout: 20s
+  tomcat:
+    max-connections: 0
+    max-threads: 200
+    accept-count: 100
+    max-swallow-size: -1
+
+logging:
+  level:
+    root: DEBUG
+    org.springframework: INFO
+    com.bankapp: TRACE
+    com.ibm.mq: DEBUG
+    org.apache.coyote: DEBUG
+    org.apache.tomcat: DEBUG
+
+ibm:
+  mq:
+    host: 127.0.0.1
+    port: 1414
+    queueManager: QM1
+    channel: DEV.APP.SVRCONN
+    inputQueue: DEV.QUEUE.1
+    outputQueue: DEV.QUEUE.2
+    connName: localhost(1414)
+    user: admin
+    password: passw0rd
+    transport: TCP
+    client: true
+    maxConnections: 10

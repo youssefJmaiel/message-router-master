@@ -1,6 +1,7 @@
 package com.bankapp.messagerouter.service;
 
 import com.bankapp.messagerouter.entity.Message;
+import com.bankapp.messagerouter.error.MessageNotFoundException;
 import com.bankapp.messagerouter.repository.MessageRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -38,17 +39,13 @@ public class MessageService {
         if (messageRepository.existsById(id)) {
             messageRepository.deleteById(id);
         } else {
-            throw new RuntimeException("Message not found");
+            throw new MessageNotFoundException("Message with ID " + id + " not found");
         }
     }
 
     public Message getMessageById(Long id) {
         return messageRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Message not found"));
-    }
-
-    public Optional<Message> findById(Long id) {
-        return messageRepository.findById(id);
+                .orElseThrow(() -> new MessageNotFoundException("Message with ID " + id + " not found"));
     }
 
     public Message sendMessage(String content, String sender, String receiver) {

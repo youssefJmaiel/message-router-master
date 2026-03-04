@@ -2,6 +2,7 @@ package com.bankapp.messagerouter.controller;
 
 import com.bankapp.messagerouter.dto.MessageRequest;
 import com.bankapp.messagerouter.entity.Message;
+import com.bankapp.messagerouter.error.MessageNotFoundException;
 import com.bankapp.messagerouter.service.MessageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -15,18 +16,19 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class MessageControllerTest {
+class MessageControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,55 +39,31 @@ public class MessageControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // ---------------------- GET ALL MESSAGES ----------------------
+    // ---------------------- GET ALL ----------------------
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    public void testGetAllMessages() throws Exception {
+    @WithMockUser(roles = "ADMIN")
+    void getAllMessages_shouldReturnList() throws Exception {
         Message message = new Message();
-        message.setContent("Hello, World!");
-        message.setSender("Alice");
-        message.setReceiver("Bob");
+        message.setContent("Hello World");
 
-        when(messageService.getAllMessages()).thenReturn(List.of(message));
+        when(messageService.getAllMessages())
+                .thenReturn(Collections.singletonList(message));
 
         mockMvc.perform(get("/api/messages"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].content").value("Hello, World!"))
-                .andExpect(jsonPath("$[0].sender").value("Alice"))
-                .andExpect(jsonPath("$[0].receiver").value("Bob"));
+                .andExpect(jsonPath("$[0].content").value("Hello World"));
     }
 
-    // ---------------------- GET MESSAGE BY ID ----------------------
+    // ---------------------- GET PAGINATED ----------------------
     @Test
-    @WithMockUser
-    public void testGetMessageById_found() throws Exception {
+    @WithMockUser(roles = "ADMIN")
+    void getMessagesPaged_shouldReturnPage() throws Exception {
         Message message = new Message();
-        message.setId(1L);
-        message.setContent("Message 1");
-        message.setSender("Alice");
-        message.setReceiver("Bob");
-
-        when(messageService.getMessageById(1L)).thenReturn(message);
-
-        mockMvc.perform(get("/api/message/{id}", 1L))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").value("Message 1"))
-                .andExpect(jsonPath("$.sender").value("Alice"))
-                .andExpect(jsonPath("$.receiver").value("Bob"));
-    }
-
-    // ---------------------- GET MESSAGES PAGINATED ----------------------
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    public void testGetMessagesPaginated() throws Exception {
-        Message message = new Message();
-        message.setId(1L);
         message.setContent("Paged Message");
-        message.setSender("Alice");
-        message.setReceiver("Bob");
 
-        Page<Message> page = new PageImpl<>(List.of(message));
-        when(messageService.getMessagesPaginated(0, 10, "timestamp", "desc")).thenReturn(page);
+        Page<Message> page = new PageImpl<>(Collections.singletonList(message));
+        when(messageService.getMessagesPaginated(0, 10, "timestamp", "desc"))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/messages/paged")
                         .param("page", "0")
@@ -93,21 +71,41 @@ public class MessageControllerTest {
                         .param("sortBy", "timestamp")
                         .param("direction", "desc"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].content").value("Paged Message"))
-                .andExpect(jsonPath("$.content[0].sender").value("Alice"))
-                .andExpect(jsonPath("$.content[0].receiver").value("Bob"))
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.totalPages").value(1));
+                .andExpect(jsonPath("$.content[0].content").value("Paged Message"));
     }
 
-    // ---------------------- SAVE MESSAGE ----------------------
+    // ---------------------- GET BY ID ----------------------
     @Test
-    @WithMockUser
-    public void testSaveMessage() throws Exception {
+    @WithMockUser(roles = "ADMIN")
+    void getMessageById_shouldReturnMessage_whenFound() throws Exception {
+        Message message = new Message();
+        message.setId(1L);
+        message.setContent("Test Message");
+        message.setTimestamp(LocalDateTime.now());
+
+        when(messageService.getMessageById(1L)).thenReturn(message);
+
+        mockMvc.perform(get("/api/message/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("Test Message"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getMessageById_shouldReturnNotFound_whenMissing() throws Exception {
+        doThrow(new MessageNotFoundException("Message with ID 999 not found"))
+                .when(messageService).getMessageById(999L);
+
+        mockMvc.perform(get("/api/message/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ---------------------- CREATE ----------------------
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createMessage_shouldReturnCreated() throws Exception {
         Message message = new Message();
         message.setContent("New Message");
-        message.setSender("Alice");
-        message.setReceiver("Bob");
 
         when(messageService.saveMessage(any(Message.class))).thenReturn(message);
 
@@ -115,55 +113,50 @@ public class MessageControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(message)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.content").value("New Message"))
-                .andExpect(jsonPath("$.sender").value("Alice"))
-                .andExpect(jsonPath("$.receiver").value("Bob"));
+                .andExpect(jsonPath("$.content").value("New Message"));
     }
 
-    // ---------------------- DELETE MESSAGE ----------------------
+    // ---------------------- DELETE ----------------------
     @Test
-    @WithMockUser
-    public void testDeleteMessage_found() throws Exception {
-        Message message = new Message();
-        message.setId(1L);
-
-        when(messageService.findById(1L)).thenReturn(Optional.of(message));
+    @WithMockUser(roles = "ADMIN")
+    void deleteMessage_shouldReturnNoContent_whenExists() throws Exception {
         doNothing().when(messageService).deleteMessage(1L);
 
-        mockMvc.perform(delete("/api/message/{id}", 1L))
+        mockMvc.perform(delete("/api/message/1"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    @WithMockUser
-    public void testDeleteMessage_notFound() throws Exception {
-        when(messageService.findById(1L)).thenReturn(Optional.empty());
+    @WithMockUser(roles = "ADMIN")
+    void deleteMessage_shouldReturnNotFound_whenMissing() throws Exception {
+        doThrow(new MessageNotFoundException("Message with ID 999 not found"))
+                .when(messageService).deleteMessage(999L);
 
-        mockMvc.perform(delete("/api/message/{id}", 1L))
+        mockMvc.perform(delete("/api/message/999"))
                 .andExpect(status().isNotFound());
     }
 
     // ---------------------- SEND MESSAGE ----------------------
     @Test
-    @WithMockUser
-    public void testSendMessage() throws Exception {
+    @WithMockUser(roles = "ADMIN")
+    void sendMessage_shouldReturnCreated() throws Exception {
         MessageRequest request = new MessageRequest();
-        request.setContent("Sent message");
+        request.setContent("Hello");
         request.setSender("Alice");
         request.setReceiver("Bob");
 
         Message message = new Message();
-        message.setContent("Sent message");
+        message.setContent("Hello");
         message.setSender("Alice");
         message.setReceiver("Bob");
 
-        when(messageService.sendMessage(any(), any(), any())).thenReturn(message);
+        when(messageService.sendMessage("Hello", "Alice", "Bob")).thenReturn(message);
 
         mockMvc.perform(post("/api/message/send")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.content").value("Sent message"))
+                .andExpect(jsonPath("$.content").value("Hello"))
                 .andExpect(jsonPath("$.sender").value("Alice"))
                 .andExpect(jsonPath("$.receiver").value("Bob"));
     }

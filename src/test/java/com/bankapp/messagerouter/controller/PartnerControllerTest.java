@@ -4,6 +4,7 @@ import com.bankapp.messagerouter.entity.Partner;
 import com.bankapp.messagerouter.entity.PartnerDirection;
 import com.bankapp.messagerouter.entity.PartnerType;
 import com.bankapp.messagerouter.entity.ProcessedFlowType;
+import com.bankapp.messagerouter.error.PartnerNotFoundException;
 import com.bankapp.messagerouter.service.PartnerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -16,14 +17,12 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -43,7 +42,6 @@ class PartnerControllerTest {
     @Test
     @WithMockUser(roles = "USER")
     void getAllPartners_shouldReturnList() throws Exception {
-
         Partner partner = new Partner();
         partner.setAlias("Test Partner");
 
@@ -59,13 +57,11 @@ class PartnerControllerTest {
     @Test
     @WithMockUser(roles = "USER")
     void getPartnerById_shouldReturnPartner_whenFound() throws Exception {
-
         Partner partner = new Partner();
         partner.setId(1L);
         partner.setAlias("Partner 1");
 
-        when(partnerService.findPartnerById(1L))
-                .thenReturn(Optional.of(partner));
+        when(partnerService.getPartnerById(1L)).thenReturn(partner);
 
         mockMvc.perform(get("/api/partners/1"))
                 .andExpect(status().isOk())
@@ -75,11 +71,10 @@ class PartnerControllerTest {
     @Test
     @WithMockUser(roles = "USER")
     void getPartnerById_shouldReturnNotFound_whenMissing() throws Exception {
+        doThrow(new PartnerNotFoundException("Partner with ID 999 not found"))
+                .when(partnerService).getPartnerById(999L);
 
-        when(partnerService.findPartnerById(1L))
-                .thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/api/partners/1"))
+        mockMvc.perform(get("/api/partners/999"))
                 .andExpect(status().isNotFound());
     }
 
@@ -87,7 +82,6 @@ class PartnerControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void createPartner_shouldReturnCreated() throws Exception {
-
         Partner partner = new Partner();
         partner.setAlias("New Partner");
         partner.setType(PartnerType.MESSAGE);
@@ -95,8 +89,7 @@ class PartnerControllerTest {
         partner.setProcessedFlowType(ProcessedFlowType.MESSAGE);
         partner.setDescription("Valid Description");
 
-        when(partnerService.savePartner(any(Partner.class)))
-                .thenReturn(partner);
+        when(partnerService.savePartner(any(Partner.class))).thenReturn(partner);
 
         mockMvc.perform(post("/api/partners")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,13 +106,6 @@ class PartnerControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void deletePartner_shouldReturnNoContent_whenExists() throws Exception {
-
-        Partner partner = new Partner();
-        partner.setId(1L);
-
-        when(partnerService.findPartnerById(1L))
-                .thenReturn(Optional.of(partner));
-
         doNothing().when(partnerService).deletePartner(1L);
 
         mockMvc.perform(delete("/api/partners/1"))
@@ -129,11 +115,10 @@ class PartnerControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void deletePartner_shouldReturnNotFound_whenMissing() throws Exception {
+        doThrow(new PartnerNotFoundException("Partner with ID 999 not found"))
+                .when(partnerService).deletePartner(999L);
 
-        when(partnerService.findPartnerById(1L))
-                .thenReturn(Optional.empty());
-
-        mockMvc.perform(delete("/api/partners/1"))
+        mockMvc.perform(delete("/api/partners/999"))
                 .andExpect(status().isNotFound());
     }
 }

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/partners")
@@ -28,9 +27,7 @@ public class PartnerController {
     @GetMapping
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<Partner>> getAllPartners() {
-        log.info("Fetching all partners");
-        List<Partner> partners = partnerService.getAllPartners();
-        return ResponseEntity.ok(partners);
+        return ResponseEntity.ok(partnerService.getAllPartners());
     }
 
     @GetMapping("/paged")
@@ -41,33 +38,24 @@ public class PartnerController {
             @RequestParam(defaultValue = "alias") String sortBy,
             @RequestParam(defaultValue = "asc") String direction
     ) {
-        Page<Partner> partners = partnerService.getPartnersPaginated(page, size, sortBy, direction);
-        return ResponseEntity.ok(partners);
+        return ResponseEntity.ok(partnerService.getPartnersPaginated(page, size, sortBy, direction));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<Partner> getPartnerById(@PathVariable Long id) {
-        return partnerService.findPartnerById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Partner partner = partnerService.getPartnerById(id);
+        return ResponseEntity.ok(partner);
     }
 
     @PostMapping
     public ResponseEntity<Partner> savePartner(@Valid @RequestBody Partner partner) {
-        log.info("Creating partner: {}", partner);
-        Partner createdPartner = partnerService.savePartner(partner);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdPartner);
+        return new ResponseEntity<>(partnerService.savePartner(partner), HttpStatus.CREATED);
     }
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePartner(@PathVariable Long id) {
-        Optional<Partner> partner = partnerService.findPartnerById(id);
-        if (partner.isEmpty()) {
-            return ResponseEntity.notFound().build();  // 404 Not Found
-        }
         partnerService.deletePartner(id);
-        return ResponseEntity.noContent().build();  // 204 No Content
+        return ResponseEntity.noContent().build();
     }
 }
