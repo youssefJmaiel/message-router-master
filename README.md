@@ -12,19 +12,6 @@ Spring Boot backend for Message Router System.
 - Error handling & retry logic
 - Containerized with Docker
 
-## 🐳 Example Datasource Configuration (application.yml.example)
-spring:
-  datasource:
-    # Example using H2 for testing
-    url: jdbc:h2:file:./data/message_db
-    driver-class-name: org.h2.Driver
-    username: your_username
-    password: your_password
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
 
 ## 🐳 Run Backend with Docker
 
