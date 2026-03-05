@@ -8,36 +8,36 @@
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 Backend service for a **Banking Message Routing System** built using **Spring Boot**.
-The backend handles messages between systems via **IBM MQ**, stores them in a database, and provides **secure REST APIs** for managing messages and partners.
 
-The project demonstrates enterprise backend architecture:
+The application integrates **IBM MQ messaging**, stores messages in a database, and exposes **secure REST APIs** to manage messages and partners.
 
-* Middleware integration with IBM MQ
-* OAuth2 authentication via Keycloak
-* Role-based authorization
-* Pagination & sorting
+The project demonstrates **enterprise backend architecture** including:
+
+* Messaging middleware integration
+* OAuth2 authentication with Keycloak
+* Pagination and sorting
 * Global exception handling
-* Unit testing and validation
-* Dockerized deployment
+* Unit testing
 
 ---
 
-## Features
+# Features
 
-* IBM MQ messaging integration (send and receive)
-* Message management and storage
+* IBM MQ integration (send and receive messages)
+* Message storage and management
 * Partner management
-* Secure REST APIs with Keycloak
-* Pagination and sorting support
+* Secure REST APIs
+* Pagination and sorting
+* Role-based access control (Keycloak)
 * Global exception handling
 * DTO validation
-* Unit testing (JUnit + Mockito)
-* Docker-ready setup
-* Configurable via `application.yml.example`
+* Unit testing
+* Docker ready
+* Secure configuration using `application.yml.example`
 
 ---
 
-## Tech Stack
+# Tech Stack
 
 * Java 11
 * Spring Boot 2.x
@@ -49,17 +49,19 @@ The project demonstrates enterprise backend architecture:
 * PostgreSQL / H2
 * Maven
 * Docker
-* JUnit & Mockito
+* JUnit
+* Mockito
 
 ---
 
-## Architecture Overview
+# Architecture
 
 ```
                 +-------------+
                 |   Keycloak  |
                 | Authentication |
                 +------+------+
+                       |
                        |
                 +------v------+
                 | Spring Boot |
@@ -76,59 +78,79 @@ The project demonstrates enterprise backend architecture:
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```
 message-router-backend
 │
 ├── config
-│   ├── GlobalExceptionHandler
-│   ├── JacksonConfig
-│   ├── MqConfig
-│   ├── MqConfigProperties
-│   └── SecurityConfig
+│   ├── GlobalExceptionHandler.java
+│   ├── JacksonConfig.java
+│   ├── MqConfig.java
+│   ├── MqConfigProperties.java
+│   └── SecurityConfig.java
 │
 ├── controller
-│   ├── MessageController
-│   └── PartnerController
+│   ├── MessageController.java
+│   └── PartnerController.java
 │
 ├── service
-│   ├── MessageService
-│   ├── PartnerService
-│   ├── MqService
-│   └── MqMessageListener
+│   ├── MessageService.java
+│   ├── PartnerService.java
+│   ├── MqService.java
+│   └── MqMessageListener.java
 │
 ├── repository
-│   ├── MessageRepository
-│   └── PartnerRepository
+│   ├── MessageRepository.java
+│   └── PartnerRepository.java
 │
 ├── entity
-│   ├── Message
-│   └── Partner
+│   ├── Message.java
+│   ├── Partner.java
+│   ├── PartnerDirection.java
+│   ├── PartnerType.java
+│   └── ProcessedFlowType.java
 │
 ├── dto
-│   └── MessageRequest
+│   └── MessageRequest.java
 │
 ├── error
-│   ├── ErrorResponse
-│   ├── MessageNotFoundException
-│   └── PartnerNotFoundException
+│   ├── ErrorResponse.java
+│   ├── MessageNotFoundException.java
+│   └── PartnerNotFoundException.java
 │
-└── MessageRouterApplication
+└── MessageRouterApplication.java
 ```
 
 ---
 
-## Message API Endpoints
+# Message API
 
-* **GET /api/messages** – Retrieve all messages
-* **GET /api/messages/paged?page=0&size=10&sortBy=timestamp&direction=desc** – Paginated messages
-* **GET /api/message/{id}** – Get message by ID
-* **POST /api/message** – Create message
-* **DELETE /api/message/{id}** – Delete message
-* **POST /api/message/send** – Send a message
+Retrieve all messages
 
-Example JSON for sending a message:
+GET /api/messages
+
+Retrieve paginated messages
+
+GET /api/messages/paged?page=0&size=10&sortBy=timestamp&direction=desc
+
+Retrieve message by ID
+
+GET /api/message/{id}
+
+Create message
+
+POST /api/message
+
+Delete message
+
+DELETE /api/message/{id}
+
+Send message
+
+POST /api/message/send
+
+Example request
 
 ```json
 {
@@ -140,42 +162,63 @@ Example JSON for sending a message:
 
 ---
 
-## Partner API Endpoints
+# Partner API
 
-* **GET /api/partners** – Retrieve all partners
-* **GET /api/partners/paged** – Paginated partner list
-* **GET /api/partners/{id}** – Get partner by ID
-* **POST /api/partners** – Create partner
-* **DELETE /api/partners/{id}** – Delete partner
+Retrieve all partners
+
+GET /api/partners
+
+Retrieve paginated partners
+
+GET /api/partners/paged
+
+Retrieve partner by ID
+
+GET /api/partners/{id}
+
+Create partner
+
+POST /api/partners
+
+Delete partner
+
+DELETE /api/partners/{id}
 
 ---
 
-## Security
+# Security
 
-OAuth2 authentication via Keycloak is implemented.
+The application is secured using **OAuth2 with Keycloak**.
 
 Role-based access:
 
-* **ADMIN** – access message APIs
-* **USER** – access partner APIs
+**ADMIN**
 
-Include the token in your request header:
+* access message APIs
 
-```http
+**USER**
+
+* access partner APIs
+
+Example header
+
 Authorization: Bearer <access_token>
-```
 
 ---
 
-## IBM MQ Integration
+# IBM MQ Messaging
 
-### Producer
+The application integrates with **IBM MQ** using **Spring JMS**.
 
-Send messages to the MQ queue with `MqService.sendMessage(String message)`.
+### Message Producer
 
-### Consumer / Listener
+Send messages to the MQ queue using `MqService`:
 
-Consume messages asynchronously from the MQ queue with `MqMessageListener`:
+sendMessage(String message)
+
+### Message Consumer / Listener
+
+Consume messages from the MQ queue using `MqMessageListener`:
 
 ```java
 @Component
@@ -187,19 +230,26 @@ public class MqMessageListener {
 }
 ```
 
-**Benefits**:
+Benefits:
 
-* Asynchronous messaging
-* Reliable delivery
-* Decoupled architecture
-* High scalability
+* asynchronous communication between systems
+* reliable message delivery
+* decoupled system architecture
+* high scalability for banking systems
 
 ---
 
-## Configuration
+# Configuration
 
-Sensitive info is excluded from Git.
-Use `application.yml.example` as a template:
+Sensitive configuration is not stored in Git.
+
+The project includes:
+
+application.yml.example
+
+Developers must create their own configuration file.
+
+Example configuration
 
 ```yaml
 spring:
@@ -220,46 +270,52 @@ keycloak:
 
 ---
 
-## Running the Project
+# Running the Project
 
-Build:
+Build project
 
-```bash
 mvn clean install
-```
 
-Run:
+Run application
 
-```bash
 mvn spring-boot:run
-```
 
-The app runs on:
+Application runs on
 
-```
-http://localhost:8080
-```
+[http://localhost:8080](http://localhost:8080)
 
 ---
 
-## Unit Testing
+# Unit Testing
 
-Covers **service and controller layers** using JUnit + Mockito.
+Unit tests cover:
 
-```bash
+* Service layer
+* Controller layer
+
+Technologies used:
+
+* JUnit
+* Mockito
+* Spring Boot Test
+
+Run tests
+
 mvn test
-```
 
 ---
 
-## Purpose
+# Purpose of the Project
 
-This backend simulates a **real banking message routing system**, demonstrating:
+This project simulates a **real enterprise banking backend system** integrating with messaging middleware.
 
-* Enterprise-grade Spring Boot backend
+It demonstrates:
+
+* Spring Boot backend development
 * IBM MQ messaging integration
-* Secure REST APIs with OAuth2
-* Role-based authorization
-* Pagination & sorting
-* Exception handling
-* Backend unit testing
+* secure REST APIs
+* OAuth2 authentication with Keycloak
+* role-based authorization
+* pagination and sorting
+* exception handling
+* backend testing
