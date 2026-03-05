@@ -7,15 +7,16 @@
 ![Docker](https://img.shields.io/badge/Container-Docker-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
-Backend service for a **Banking Message Routing System** built with **Spring Boot**.
-The application integrates with **IBM MQ**, stores messages in a database, and exposes secure REST APIs to manage messages and partners.
+Backend service for a **Banking Message Routing System** built using **Spring Boot**.
 
-The system demonstrates **enterprise backend architecture** including:
+The application integrates **IBM MQ messaging**, stores messages in a database, and exposes **secure REST APIs** to manage messages and partners.
+
+The project demonstrates **enterprise backend architecture** including:
 
 * Messaging middleware integration
 * OAuth2 authentication with Keycloak
 * Pagination and sorting
-* Exception handling
+* Global exception handling
 * Unit testing
 
 ---
@@ -25,11 +26,12 @@ The system demonstrates **enterprise backend architecture** including:
 * IBM MQ integration (send and receive messages)
 * Message storage and management
 * Partner management
-* RESTful APIs
+* Secure REST APIs
 * Pagination and sorting
-* Role-based security with Keycloak
-* Exception handling
-* Unit testing (Service & Controller)
+* Role-based access control (Keycloak)
+* Global exception handling
+* DTO validation
+* Unit testing
 * Docker ready
 * Secure configuration using `application.yml.example`
 
@@ -81,6 +83,13 @@ The system demonstrates **enterprise backend architecture** including:
 ```
 message-router-backend
 │
+├── config
+│   ├── GlobalExceptionHandler
+│   ├── JacksonConfig
+│   ├── MqConfig
+│   ├── MqConfigProperties
+│   └── SecurityConfig
+│
 ├── controller
 │   ├── MessageController
 │   └── PartnerController
@@ -88,7 +97,8 @@ message-router-backend
 ├── service
 │   ├── MessageService
 │   ├── PartnerService
-│   └── MqService
+│   ├── MqService
+│   └── MqMessageListener
 │
 ├── repository
 │   ├── MessageRepository
@@ -102,11 +112,11 @@ message-router-backend
 │   └── MessageRequest
 │
 ├── error
+│   ├── ErrorResponse
 │   ├── MessageNotFoundException
 │   └── PartnerNotFoundException
 │
-└── config
-    └── SecurityConfig
+└── MessageRouterApplication
 ```
 
 ---
@@ -125,7 +135,7 @@ Retrieve message by ID
 
 GET /api/message/{id}
 
-Create a message
+Create message
 
 POST /api/message
 
@@ -137,9 +147,9 @@ Send message
 
 POST /api/message/send
 
-Example request body
+Example request
 
-```
+```json
 {
   "content": "Test message",
   "sender": "SYSTEM_A",
@@ -157,7 +167,7 @@ GET /api/partners
 
 Retrieve paginated partners
 
-GET /api/partners/paged?page=0&size=10&sortBy=alias&direction=asc
+GET /api/partners/paged
 
 Retrieve partner by ID
 
@@ -181,37 +191,53 @@ Role-based access:
 
 ADMIN
 
-* access message endpoints
+* access message APIs
 
 USER
 
-* access partner endpoints
+* access partner APIs
 
-Example Authorization header
+Example header
 
-```
+```http
 Authorization: Bearer <access_token>
 ```
 
 ---
 
-# IBM MQ Integration
+# IBM MQ Messaging
 
-The application integrates with **IBM MQ** using Spring JMS.
+The application integrates with **IBM MQ** using **Spring JMS**.
 
-Capabilities:
+### Message Producer
 
-* Connect to MQ queue
-* Send messages
-* Receive messages
+Send messages to the MQ queue using `MqService`:
 
-Example operations
-
-```
+```java
 sendMessage(String message)
-
-receiveMessage()
 ```
+
+### Message Consumer / Listener
+
+Consume messages from the MQ queue using `MqMessageListener`:
+
+```java
+@Component
+@Slf4j
+public class MqMessageListener {
+
+    public void handleMessage(String message) {
+        log.info("Received message from MQ: {}", message);
+    }
+}
+```
+
+Benefits:
+
+* asynchronous communication between systems
+* reliable message delivery
+* decoupled system architecture
+* high scalability for banking systems
 
 ---
 
@@ -219,21 +245,17 @@ receiveMessage()
 
 Sensitive configuration is not stored in Git.
 
-Instead the project includes:
+The project includes:
 
-```
+```bash
 application.yml.example
 ```
 
-Create your configuration:
-
-```
-cp application.yml.example application.yml
-```
+Developers must create their own configuration file.
 
 Example configuration
 
-```
+```yaml
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/message_router
@@ -254,15 +276,15 @@ keycloak:
 
 # Running the Project
 
-Build the project
+Build project
 
-```
+```bash
 mvn clean install
 ```
 
-Run the application
+Run application
 
-```
+```bash
 mvn spring-boot:run
 ```
 
@@ -276,7 +298,7 @@ http://localhost:8080
 
 # Unit Testing
 
-The project includes unit tests for:
+Unit tests cover:
 
 * Service layer
 * Controller layer
@@ -289,7 +311,7 @@ Technologies used:
 
 Run tests
 
-```
+```bash
 mvn test
 ```
 
@@ -297,15 +319,15 @@ mvn test
 
 # Purpose of the Project
 
-This project simulates a **real enterprise banking backend system** that integrates with messaging middleware.
+This project simulates a **real enterprise banking backend system** integrating with messaging middleware.
 
 It demonstrates:
 
 * Spring Boot backend development
 * IBM MQ messaging integration
-* Secure REST APIs
-* OAuth2 authentication
-* Role-based authorization
-* Pagination and sorting
-* Backend testing
-* Containerized deployment
+* secure REST APIs
+* OAuth2 authentication with Keycloak
+* role-based authorization
+* pagination and sorting
+* exception handling
+* backend testing
