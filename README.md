@@ -8,39 +8,39 @@
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 Backend service for a **Banking Message Routing System** built using **Spring Boot**.
+The backend handles messages between systems via **IBM MQ**, stores them in a database, and provides **secure REST APIs** for managing messages and partners.
 
-The application integrates **IBM MQ messaging**, stores messages in a database, and exposes **secure REST APIs** to manage messages and partners.
+The project demonstrates enterprise backend architecture:
 
-The project demonstrates **enterprise backend architecture** including:
-
-* Messaging middleware integration
-* OAuth2 authentication with Keycloak
-* Pagination and sorting
+* Middleware integration with IBM MQ
+* OAuth2 authentication via Keycloak
+* Role-based authorization
+* Pagination & sorting
 * Global exception handling
-* Unit testing
+* Unit testing and validation
+* Dockerized deployment
 
 ---
 
-# Features
+## Features
 
-* IBM MQ integration (send and receive messages)
-* Message storage and management
+* IBM MQ messaging integration (send and receive)
+* Message management and storage
 * Partner management
-* Secure REST APIs
-* Pagination and sorting
-* Role-based access control (Keycloak)
+* Secure REST APIs with Keycloak
+* Pagination and sorting support
 * Global exception handling
 * DTO validation
-* Unit testing
-* Docker ready
-* Secure configuration using `application.yml.example`
+* Unit testing (JUnit + Mockito)
+* Docker-ready setup
+* Configurable via `application.yml.example`
 
 ---
 
-# Tech Stack
+## Tech Stack
 
 * Java 11
-* Spring Boot
+* Spring Boot 2.x
 * Spring Data JPA
 * Spring Security
 * OAuth2 Resource Server
@@ -49,19 +49,17 @@ The project demonstrates **enterprise backend architecture** including:
 * PostgreSQL / H2
 * Maven
 * Docker
-* JUnit
-* Mockito
+* JUnit & Mockito
 
 ---
 
-# Architecture
+## Architecture Overview
 
 ```
                 +-------------+
                 |   Keycloak  |
                 | Authentication |
                 +------+------+
-                       |
                        |
                 +------v------+
                 | Spring Boot |
@@ -78,7 +76,7 @@ The project demonstrates **enterprise backend architecture** including:
 
 ---
 
-# Project Structure
+## Project Structure
 
 ```
 message-router-backend
@@ -121,33 +119,16 @@ message-router-backend
 
 ---
 
-# Message API
+## Message API Endpoints
 
-Retrieve all messages
+* **GET /api/messages** – Retrieve all messages
+* **GET /api/messages/paged?page=0&size=10&sortBy=timestamp&direction=desc** – Paginated messages
+* **GET /api/message/{id}** – Get message by ID
+* **POST /api/message** – Create message
+* **DELETE /api/message/{id}** – Delete message
+* **POST /api/message/send** – Send a message
 
-GET /api/messages
-
-Retrieve paginated messages
-
-GET /api/messages/paged?page=0&size=10&sortBy=timestamp&direction=desc
-
-Retrieve message by ID
-
-GET /api/message/{id}
-
-Create message
-
-POST /api/message
-
-Delete message
-
-DELETE /api/message/{id}
-
-Send message
-
-POST /api/message/send
-
-Example request
+Example JSON for sending a message:
 
 ```json
 {
@@ -159,45 +140,26 @@ Example request
 
 ---
 
-# Partner API
+## Partner API Endpoints
 
-Retrieve all partners
-
-GET /api/partners
-
-Retrieve paginated partners
-
-GET /api/partners/paged
-
-Retrieve partner by ID
-
-GET /api/partners/{id}
-
-Create partner
-
-POST /api/partners
-
-Delete partner
-
-DELETE /api/partners/{id}
+* **GET /api/partners** – Retrieve all partners
+* **GET /api/partners/paged** – Paginated partner list
+* **GET /api/partners/{id}** – Get partner by ID
+* **POST /api/partners** – Create partner
+* **DELETE /api/partners/{id}** – Delete partner
 
 ---
 
-# Security
+## Security
 
-The application is secured using **OAuth2 with Keycloak**.
+OAuth2 authentication via Keycloak is implemented.
 
 Role-based access:
 
-ADMIN
+* **ADMIN** – access message APIs
+* **USER** – access partner APIs
 
-* access message APIs
-
-USER
-
-* access partner APIs
-
-Example header
+Include the token in your request header:
 
 ```http
 Authorization: Bearer <access_token>
@@ -205,55 +167,39 @@ Authorization: Bearer <access_token>
 
 ---
 
-# IBM MQ Messaging
+## IBM MQ Integration
 
-The application integrates with **IBM MQ** using **Spring JMS**.
+### Producer
 
-### Message Producer
+Send messages to the MQ queue with `MqService.sendMessage(String message)`.
 
-Send messages to the MQ queue using `MqService`:
+### Consumer / Listener
 
-```java
-sendMessage(String message)
-```
-
-### Message Consumer / Listener
-
-Consume messages from the MQ queue using `MqMessageListener`:
+Consume messages asynchronously from the MQ queue with `MqMessageListener`:
 
 ```java
 @Component
 @Slf4j
 public class MqMessageListener {
-
     public void handleMessage(String message) {
         log.info("Received message from MQ: {}", message);
     }
 }
 ```
 
-Benefits:
+**Benefits**:
 
-* asynchronous communication between systems
-* reliable message delivery
-* decoupled system architecture
-* high scalability for banking systems
+* Asynchronous messaging
+* Reliable delivery
+* Decoupled architecture
+* High scalability
 
 ---
 
-# Configuration
+## Configuration
 
-Sensitive configuration is not stored in Git.
-
-The project includes:
-
-```bash
-application.yml.example
-```
-
-Developers must create their own configuration file.
-
-Example configuration
+Sensitive info is excluded from Git.
+Use `application.yml.example` as a template:
 
 ```yaml
 spring:
@@ -274,21 +220,21 @@ keycloak:
 
 ---
 
-# Running the Project
+## Running the Project
 
-Build project
+Build:
 
 ```bash
 mvn clean install
 ```
 
-Run application
+Run:
 
 ```bash
 mvn spring-boot:run
 ```
 
-Application runs on
+The app runs on:
 
 ```
 http://localhost:8080
@@ -296,20 +242,9 @@ http://localhost:8080
 
 ---
 
-# Unit Testing
+## Unit Testing
 
-Unit tests cover:
-
-* Service layer
-* Controller layer
-
-Technologies used:
-
-* JUnit
-* Mockito
-* Spring Boot Test
-
-Run tests
+Covers **service and controller layers** using JUnit + Mockito.
 
 ```bash
 mvn test
@@ -317,17 +252,14 @@ mvn test
 
 ---
 
-# Purpose of the Project
+## Purpose
 
-This project simulates a **real enterprise banking backend system** integrating with messaging middleware.
+This backend simulates a **real banking message routing system**, demonstrating:
 
-It demonstrates:
-
-* Spring Boot backend development
+* Enterprise-grade Spring Boot backend
 * IBM MQ messaging integration
-* secure REST APIs
-* OAuth2 authentication with Keycloak
-* role-based authorization
-* pagination and sorting
-* exception handling
-* backend testing
+* Secure REST APIs with OAuth2
+* Role-based authorization
+* Pagination & sorting
+* Exception handling
+* Backend unit testing
