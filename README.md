@@ -1,9 +1,22 @@
 # Message Router Backend
 
-Backend service for a **Banking Message Routing System** built with Spring Boot.
+![Java](https://img.shields.io/badge/Java-11-blue)
+![Spring Boot](https://img.shields.io/badge/SpringBoot-2.x-green)
+![Keycloak](https://img.shields.io/badge/Auth-Keycloak-orange)
+![IBM MQ](https://img.shields.io/badge/Messaging-IBM%20MQ-red)
+![Docker](https://img.shields.io/badge/Container-Docker-blue)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+
+Backend service for a **Banking Message Routing System** built with **Spring Boot**.
 The application integrates with **IBM MQ**, stores messages in a database, and exposes secure REST APIs to manage messages and partners.
 
-The system includes **pagination, role-based security with Keycloak, exception handling, and unit testing**.
+The system demonstrates **enterprise backend architecture** including:
+
+* Messaging middleware integration
+* OAuth2 authentication with Keycloak
+* Pagination and sorting
+* Exception handling
+* Unit testing
 
 ---
 
@@ -12,13 +25,13 @@ The system includes **pagination, role-based security with Keycloak, exception h
 * IBM MQ integration (send and receive messages)
 * Message storage and management
 * Partner management
-* Secure REST APIs
+* RESTful APIs
 * Pagination and sorting
-* Role-based access control (Keycloak)
+* Role-based security with Keycloak
 * Exception handling
-* Unit testing (Service and Controller)
+* Unit testing (Service & Controller)
 * Docker ready
-* Secure configuration with `application.yml.example`
+* Secure configuration using `application.yml.example`
 
 ---
 
@@ -34,100 +47,129 @@ The system includes **pagination, role-based security with Keycloak, exception h
 * PostgreSQL / H2
 * Maven
 * Docker
-* JUnit / Mockito
+* JUnit
+* Mockito
+
+---
+
+# Architecture
+
+```
+                +-------------+
+                |   Keycloak  |
+                | Authentication |
+                +------+------+
+                       |
+                       |
+                +------v------+
+                | Spring Boot |
+                | Message Router |
+                +------+------+
+                       |
+        +--------------+-------------+
+        |                            |
+  +-----v-----+               +------v------+
+  |  IBM MQ   |               | PostgreSQL  |
+  | Messaging |               | Database    |
+  +-----------+               +-------------+
+```
 
 ---
 
 # Project Structure
 
-src/main/java/com/bankapp/messagerouter
-
-controller
-
-* MessageController
-* PartnerController
-
-service
-
-* MessageService
-* PartnerService
-* MqService
-
-repository
-
-* MessageRepository
-* PartnerRepository
-
-entity
-
-* Message
-* Partner
-
-dto
-
-* MessageRequest
-
-error
-
-* MessageNotFoundException
-* PartnerNotFoundException
+```
+message-router-backend
+│
+├── controller
+│   ├── MessageController
+│   └── PartnerController
+│
+├── service
+│   ├── MessageService
+│   ├── PartnerService
+│   └── MqService
+│
+├── repository
+│   ├── MessageRepository
+│   └── PartnerRepository
+│
+├── entity
+│   ├── Message
+│   └── Partner
+│
+├── dto
+│   └── MessageRequest
+│
+├── error
+│   ├── MessageNotFoundException
+│   └── PartnerNotFoundException
+│
+└── config
+    └── SecurityConfig
+```
 
 ---
 
-# MessageController
+# Message API
 
-Handles REST endpoints for message operations.
-
-Endpoints:
+Retrieve all messages
 
 GET /api/messages
-Retrieve all messages (ADMIN role)
 
-GET /api/messages/paged
 Retrieve paginated messages
 
-GET /api/message/{id}
+GET /api/messages/paged?page=0&size=10&sortBy=timestamp&direction=desc
+
 Retrieve message by ID
 
-POST /api/message
-Save a new message
+GET /api/message/{id}
 
-DELETE /api/message/{id}
+Create a message
+
+POST /api/message
+
 Delete message
 
+DELETE /api/message/{id}
+
+Send message
+
 POST /api/message/send
-Send a message using MessageRequest DTO
 
-Example request body:
+Example request body
 
+```
 {
-"content": "Test message",
-"sender": "SYSTEM_A",
-"receiver": "SYSTEM_B"
+  "content": "Test message",
+  "sender": "SYSTEM_A",
+  "receiver": "SYSTEM_B"
 }
+```
 
 ---
 
-# PartnerController
+# Partner API
 
-Handles partner management APIs.
-
-Endpoints:
-
-GET /api/partners
 Retrieve all partners
 
-GET /api/partners/paged
+GET /api/partners
+
 Retrieve paginated partners
 
-GET /api/partners/{id}
+GET /api/partners/paged?page=0&size=10&sortBy=alias&direction=asc
+
 Retrieve partner by ID
 
+GET /api/partners/{id}
+
+Create partner
+
 POST /api/partners
-Create new partner
+
+Delete partner
 
 DELETE /api/partners/{id}
-Delete partner
 
 ---
 
@@ -139,21 +181,23 @@ Role-based access:
 
 ADMIN
 
-* Access messages endpoints
+* access message endpoints
 
 USER
 
-* Access partner endpoints
+* access partner endpoints
 
-Example Authorization header:
+Example Authorization header
 
+```
 Authorization: Bearer <access_token>
+```
 
 ---
 
 # IBM MQ Integration
 
-The application integrates with IBM MQ using **JmsTemplate**.
+The application integrates with **IBM MQ** using Spring JMS.
 
 Capabilities:
 
@@ -161,58 +205,72 @@ Capabilities:
 * Send messages
 * Receive messages
 
-Example operations:
+Example operations
 
+```
 sendMessage(String message)
 
 receiveMessage()
+```
 
 ---
 
 # Configuration
 
-Sensitive configuration is not committed to Git.
+Sensitive configuration is not stored in Git.
 
-The project provides:
+Instead the project includes:
 
+```
 application.yml.example
+```
 
-Developers must copy it:
+Create your configuration:
 
+```
 cp application.yml.example application.yml
+```
 
-Example configuration:
+Example configuration
 
+```
 spring:
-datasource:
-url: jdbc:postgresql://localhost:5432/message_router
-username: postgres
-password: password
+  datasource:
+    url: jdbc:postgresql://localhost:5432/message_router
+    username: postgres
+    password: password
 
 mq:
-host: localhost
-port: 1414
-queue: MESSAGE.QUEUE
+  host: localhost
+  port: 1414
+  queue: MESSAGE.QUEUE
 
 keycloak:
-realm: spring-app
-resource: spring-boot-client
+  realm: spring-app
+  resource: spring-boot-client
+```
 
 ---
 
 # Running the Project
 
-Build project
+Build the project
 
+```
 mvn clean install
+```
 
-Run application
+Run the application
 
+```
 mvn spring-boot:run
+```
 
-Application runs on:
+Application runs on
 
+```
 http://localhost:8080
+```
 
 ---
 
@@ -220,8 +278,8 @@ http://localhost:8080
 
 The project includes unit tests for:
 
-Service layer
-Controller layer
+* Service layer
+* Controller layer
 
 Technologies used:
 
@@ -229,9 +287,11 @@ Technologies used:
 * Mockito
 * Spring Boot Test
 
-Run tests:
+Run tests
 
+```
 mvn test
+```
 
 ---
 
@@ -242,8 +302,10 @@ This project simulates a **real enterprise banking backend system** that integra
 It demonstrates:
 
 * Spring Boot backend development
-* IBM MQ integration
-* secure REST APIs
-* role-based security with Keycloak
-* pagination and sorting
-* backend testing
+* IBM MQ messaging integration
+* Secure REST APIs
+* OAuth2 authentication
+* Role-based authorization
+* Pagination and sorting
+* Backend testing
+* Containerized deployment
