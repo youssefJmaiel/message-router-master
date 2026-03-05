@@ -1,43 +1,21 @@
-# 🚀 Message Router System
+# 🖥 Backend – Message Router
 
-Enterprise Message Routing System built with Spring Boot & Angular for banking environments.
+Spring Boot backend for Message Router System.
 
-## 🏗 Architecture
+## 🔹 Features
 
-IBM MQ → Spring Boot Backend → PostgreSQL  
-                         ↓  
-                    Angular 17 UI
-
----
-
-## 📌 Features
-
-- Receive and store MQ messages
-- Manage inbound/outbound partners
-- REST APIs with pagination & sorting
+- REST APIs for messages and partners
+- IBM MQ integration
+- PostgreSQL database
 - JWT Authentication (Keycloak)
 - Error handling & retry logic
-- Containerized deployment with Docker
+- Containerized with Docker
 
----
-
-## ⚙️ Tech Stack
-
-- Java 11, Spring Boot 2+
-- Spring Data JPA
-- REST APIs
-- IBM MQ
-- PostgreSQL
-- Angular 17
-- Docker & Docker Compose
-- Keycloak JWT Authentication
-
----
-
-## 🐳 Run with Docker
+## 🐳 Run Backend with Docker
 
 ```bash
-docker-compose up --build
+docker build -t message-router-backend .
+docker run -p 8080:8080 message-router-backend
 
 
 ## 👨‍💻 Author
